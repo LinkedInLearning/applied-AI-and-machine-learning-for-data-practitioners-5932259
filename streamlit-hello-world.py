@@ -186,5 +186,6 @@ if prompt:
 # ---------------------------------------------------------
 
 with st.expander("🧾 View Source Code (click to expand)"):
-    code = read_python_file("streamlit-hello-world.py")
+    current_file = os.path.abspath(__file__)
+    code = read_python_file(current_file)
     st.code(code, language="python")
