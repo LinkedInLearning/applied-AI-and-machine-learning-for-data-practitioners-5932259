@@ -64,6 +64,11 @@ if not st.session_state.authenticated:
 if st.session_state.just_authenticated:
     st.session_state.just_authenticated = False
     st.rerun()
+    
+def read_python_file(path: str) -> str:
+    """Read the contents of a Python file as a string."""
+    with open(path, "r") as f:
+        return f.read()
 
 # ---------------------------------------------------------
 # 3. Model Loaders (Cached Resources)
@@ -175,3 +180,11 @@ if prompt:
     with col2:
         st.markdown("#### ☁️ Cloud LLM - Mistral")
         st.write(cloud_llm_response)
+
+# ---------------------------------------------------------
+# 7. Optional: View Source Code
+# ---------------------------------------------------------
+
+with st.expander("🧾 View Source Code (click to expand)"):
+    code = read_python_file("streamlit-hello-world.py")
+    st.code(code, language="python")

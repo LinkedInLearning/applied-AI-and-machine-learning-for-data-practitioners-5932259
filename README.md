@@ -7,3 +7,9 @@ This is the repository for the LinkedIn Learning course `course-name`. The full 
 [0]: # "Replace these placeholder URLs with actual course URLs"
 [lil-course-url]: https://www.linkedin.com/learning/
 [lil-thumbnail-url]: http://
+
+**Notebook Colab Links**
+
+- [Natural Language Processing](https://colab.research.google.com/github/LinkedInLearning/applied-AI-and-machine-learning-for-data-practitioners-5932259/blob/main/exercises-natural-language-processing.ipynb)
+- [Supervised Machine Learning](https://colab.research.google.com/github/LinkedInLearning/applied-AI-and-machine-learning-for-data-practitioners-5932259/blob/main/exercises-supervised-machine-learning.ipynb)
+- [Generative AI](https://colab.research.google.com/github/LinkedInLearning/applied-AI-and-machine-learning-for-data-practitioners-5932259/blob/main/exercises-generative-ai.ipynb)
