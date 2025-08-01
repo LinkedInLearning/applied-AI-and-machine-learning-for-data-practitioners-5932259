@@ -165,11 +165,11 @@ app = builder.compile()
 
 # ========== 8. Streamlit UI ==========
 st.title("🏜️ Explore California - AI Travel Assistant")
-st.text("Ask anything about California destinations or tours!")
+st.text("Interact with our AI-powered travel assistant to explore California's best locations and tours!")
 
 with st.sidebar:
     st.subheader("Python LangGraph RAG LLM Application")
-    st.text("This is a RAG LLM app built using the **LangGraph** AI framework, running on Colab using Ngrok and Mistral from OpenRouter.")
+    st.text("This is a RAG LLM app built using the **LangGraph** AI framework, running on Google Colab using Ngrok and Mistral from OpenRouter.")
     st.markdown("🔗 [GitHub Repo](https://github.com/LinkedInLearning/applied-AI-and-machine-learning-for-data-practitioners-5932259)")
     if st.button("🔄 Start Over"):
         for key in list(st.session_state.keys()):
