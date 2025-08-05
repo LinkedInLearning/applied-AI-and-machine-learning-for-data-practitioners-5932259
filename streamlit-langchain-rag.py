@@ -144,7 +144,7 @@ st.text("Interact with our AI-powered travel assistant to explore California's b
 
 with st.sidebar:
     st.subheader("Python LangChain RAG LLM Application")
-    st.text("This is a RAG LLM app built using the **LangChain** AI framework, running on Google Colab using Ngrok and Mistral from OpenRouter.")
+    st.markdown("This is a RAG LLM app built using the **LangChain** AI framework, running on Google Colab using Ngrok and Mistral from OpenRouter.")
     st.markdown("🔗 [GitHub Repo](https://github.com/LinkedInLearning/applied-AI-and-machine-learning-for-data-practitioners-5932259)")
     if st.button("🔄 Start Over"):
         for key in list(st.session_state.keys()):
