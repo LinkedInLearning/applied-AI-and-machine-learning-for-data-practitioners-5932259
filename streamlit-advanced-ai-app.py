@@ -428,7 +428,7 @@ if "last_result" not in st.session_state:
 with st.sidebar:
     st.subheader("⚙️ Settings")
     st.markdown("This app uses LangGraph + RAG with a Mistral LLM via OpenRouter.")
-    st.markdown("🔗 [GitHub Repo](https://github.com/LinkedInLearning/applied-AI-and-machine-learning-for-data-practitioners-5932259)")
+    st.markdown("🔗 [GitHub Repo](https://github.com/LinkedInLearning/applied-AI-and-machine-learning-for-data-practitioners-5932259/blob/main/streamlit-advanced-ai-app.py)")
 
     # Load a previously saved chat
     st.subheader("🗂️ Chats")

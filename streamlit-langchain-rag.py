@@ -179,7 +179,7 @@ st.text("Interact with our AI-powered travel assistant to explore California's b
 with st.sidebar:
     st.subheader("Python LangChain RAG LLM Application")
     st.markdown("This is a RAG LLM app built using the **LangChain** AI framework, running on Google Colab using Ngrok and Mistral from OpenRouter.")
-    st.markdown("🔗 [GitHub Repo](https://github.com/LinkedInLearning/applied-AI-and-machine-learning-for-data-practitioners-5932259)")
+    st.markdown("🔗 [GitHub Repo](https://github.com/LinkedInLearning/applied-AI-and-machine-learning-for-data-practitioners-5932259/blob/main/streamlit-langchain-rag.py)")
     if st.button("🔄 Start New Chat"):
         keep_session_keys = ["authenticated", "just_authenticated"]
         # Loop through all keys and delete those not in the keep list

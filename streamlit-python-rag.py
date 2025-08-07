@@ -233,7 +233,7 @@ st.text("Interact with our AI-powered travel assistant to explore California's b
 with st.sidebar:
     st.subheader("Pure Python RAG LLM Application")
     st.text("This is a RAG app built using pure Python, running on Google Colab using Ngrok and Mistral from OpenRouter.")
-    st.markdown("🔗 **[GitHub Source Code](https://github.com/LinkedInLearning/applied-AI-and-machine-learning-for-data-practitioners-5932259)**")
+    st.markdown("🔗 **[GitHub Source Code](https://github.com/LinkedInLearning/applied-AI-and-machine-learning-for-data-practitioners-5932259/blob/main/streamlit-python-rag.py)**")
     if st.button("🔄 Start New Chat"):
         for key in ["qa_history", "chat_history", "followup_suggestions", "trigger_llm", "current_query", "context_retrieved", "initial_context", "initial_products"]:
             if key in st.session_state:

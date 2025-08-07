@@ -193,7 +193,7 @@ st.text("Interact with our AI-powered travel assistant to explore California's b
 with st.sidebar:
     st.subheader("⚙️ Settings")
     st.markdown("This app uses LangGraph + RAG with a Mistral LLM via OpenRouter.")
-    st.markdown("🔗 [GitHub Repo](https://github.com/LinkedInLearning/applied-AI-and-machine-learning-for-data-practitioners-5932259)")
+    st.markdown("🔗 [GitHub Repo](https://github.com/LinkedInLearning/applied-AI-and-machine-learning-for-data-practitioners-5932259/blob/main/streamlit-langgraph-rag.py)")
     if st.button("🔄 Start Over"):
         for key in list(st.session_state.keys()):
             del st.session_state[key]
