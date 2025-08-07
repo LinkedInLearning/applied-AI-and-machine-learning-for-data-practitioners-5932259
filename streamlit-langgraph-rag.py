@@ -3,7 +3,6 @@
 # ---------------------------------------------------------
 
 import os
-import faiss
 import pandas as pd
 import numpy as np
 import streamlit as st
@@ -12,7 +11,6 @@ from typing import TypedDict, List
 
 from langgraph.graph import StateGraph, END
 from langchain_core.tools import tool
-from langchain_core.messages import HumanMessage
 from langchain_core.documents import Document
 from langchain_openai import ChatOpenAI
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -119,38 +117,53 @@ Difficulty: {row.get('difficulty', 'Unknown')} | Audience: {row.get('demographic
     return {"products": "\n\n".join(blocks)}
 
 @tool
-def generate_answer(query: str, context: str, products: str, chat_history: List[dict]) -> dict:
-    """Use the LLM to generate an answer incorporating context, products, and chat history."""
+def generate_answer_and_followups(query: str, context: str, products: str, chat_history: List[dict]) -> dict:
+    """
+    Generate an assistant response and 3 follow-up questions using the LLM in one call.
+    """
     messages = [
         {"role": "system", "content": (
-            "You are a helpful travel assistant for the Explore California business. "
-            "Use the context and conversation history to assist the user. "
-            "Make sure to bold format any product names or location names."
+            "You are a helpful travel assistant for Explore California.\n"
+            "Use the provided context and product information to answer the user's question.\n"
+            "If relevant tour products are mentioned, format them in **bold**.\n"
+            "After the answer, suggest 3 concise follow-up questions the user might ask next.\n"
+            "Format your response like this:\n\n"
+            "**Answer:** <your assistant reply>\n\n"
+            "**Suggested Follow-Ups:**\n"
+            "- Question 1\n"
+            "- Question 2\n"
+            "- Question 3"
         )}
     ]
+
     for turn in chat_history[-6:]:
         messages.append({"role": turn["role"], "content": turn["content"]})
-    messages.append({
+
+    user_msg = {
         "role": "user",
-        "content": f"Context:\n{context}\n\nRelevant Tour Products:\n{products}\n\nQuestion: {query}"
-    })
-    result = llm.invoke(messages)
-    return {"answer": result.content}
+        "content": (
+            f"Context:\n{context}\n\n"
+            f"Relevant Tour Products:\n{products}\n\n"
+            f"Question: {query}"
+        )
+    }
+    messages.append(user_msg)
 
-@tool
-def suggest_followups(query: str, answer: str) -> dict:
-    """Generate three follow-up questions the user might ask next based on the conversation."""
-    prompt = f"""
-    Based on the user's question and your response, suggest three follow-up prompts that the user might ask next:
+    response = llm.invoke(messages)
+    content = response.content.strip()
 
-    User Question: {query}
-    Assistant Answer: {answer}
+    if "**Suggested Follow-Ups:**" in content:
+        answer_part, followup_part = content.split("**Suggested Follow-Ups:**", 1)
+        answer = answer_part.replace("**Answer:**", "").strip()
+        followups = [q.strip("-• \n") for q in followup_part.strip().splitlines() if q.strip()]
+    else:
+        answer = content
+        followups = []
 
-    Only return the three follow-up prompts separated by newlines.
-    """
-    result = llm.invoke([HumanMessage(content=prompt)])
-    questions = [q.strip("- •\n ") for q in result.content.strip().split("\n") if q.strip()]
-    return {"followups": questions}
+    return {
+        "answer": answer,
+        "followups": followups[:3]
+    }
 
 @tool
 def entry_selector(followup_mode: bool) -> dict:
@@ -163,15 +176,13 @@ builder = StateGraph(AppState)
 builder.add_node("entry_selector", entry_selector)
 builder.add_node("search_locations", search_locations)
 builder.add_node("match_products", match_products)
-builder.add_node("generate_answer", generate_answer)
-builder.add_node("suggest_followups", suggest_followups)
+builder.add_node("generate_answer", generate_answer_and_followups)
 
 builder.set_entry_point("entry_selector")
 builder.add_conditional_edges("entry_selector", lambda state: state["start_node"])
 builder.add_edge("search_locations", "match_products")
 builder.add_edge("match_products", "generate_answer")
-builder.add_edge("generate_answer", "suggest_followups")
-builder.add_edge("suggest_followups", END)
+builder.add_edge("generate_answer", END)
 
 app = builder.compile()
 

@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
 from openai import OpenAI
+from typing import List
 import warnings
 
 # Streamlit page configuration
@@ -83,56 +84,93 @@ def load_local_embedding_model():
 def get_openrouter_client():
     return OpenAI(api_key=OPEN_ROUTER_API_KEY, base_url="https://openrouter.ai/api/v1")
 
-# Call OpenRouter cloud LLM with chat history and RAG context
-def get_cloud_llm_response_with_memory(query, context, product_context, chat_history, debug=False):
-    messages = [
-        {
-            "role": "system",
-            "content": "You are a helpful travel assistant for the Explore California business. Use the context and conversation history to assist the user. Make sure to bold format any product names or location names."
-        }
-    ]
-    # Include only the last 6 messages for context window
+def get_response_and_followups(
+    query: str,
+    context: str,
+    product_context: str,
+    chat_history: List[dict],
+    debug: bool = False
+) -> dict:
+    """
+    Calls the OpenRouter LLM to generate a structured answer and follow-up questions in a single response.
+
+    Args:
+        query: User's input question.
+        context: Retrieved location context.
+        product_context: Matched tour products, formatted for display.
+        chat_history: Previous user/assistant turns.
+        debug: Whether to print/log the full response.
+
+    Returns:
+        A dictionary with:
+            - "answer": main assistant response (cleaned)
+            - "followups": list of 3 suggested follow-up questions
+            - "total_input_tokens": input token count (if available)
+            - "total_completion_tokens": completion token count (if available)
+            - "total_tokens": total token count (if available)
+    """
+    # Prepare system and conversation messages
+    system_msg = {
+        "role": "system",
+        "content": (
+            "You are a helpful travel assistant for Explore California.\n"
+            "Use the provided context and tour product suggestions to answer the user's question.\n"
+            "Always format any tour product or location names in **bold**.\n"
+            "At the end of your answer, suggest 3 relevant follow-up questions.\n"
+            "Format your response like this:\n\n"
+            "**Answer:** <your full assistant reply>\n\n"
+            "**Suggested Follow-Ups:**\n"
+            "- Question 1\n"
+            "- Question 2\n"
+            "- Question 3"
+        )
+    }
+
+    messages = [system_msg]
+
+    # Add trimmed chat history (last 6 turns)
     for turn in chat_history[-6:]:
         messages.append({"role": turn["role"], "content": turn["content"]})
 
-    # Append user query with RAG context and relevant product info
-    messages.append({
+    # Construct user message with full context
+    user_msg = {
         "role": "user",
-        "content": f"""Context:\n{context}\n\nRelevant Tour Products:\n{product_context}\n\nQuestion: {query}"""
-    })
-
-    # Prepare request payload for OpenRouter LLM
-    request_payload = {
-        "model": "mistralai/mistral-small-3.2-24b-instruct:free",
-        "messages": messages,
-        "max_tokens": 1028,
-        "temperature": 0.7
+        "content": (
+            f"Context:\n{context}\n\n"
+            f"Relevant Tour Products:\n{product_context}\n\n"
+            f"Question: {query}"
+        )
     }
+    messages.append(user_msg)
 
-    # Send to OpenRouter and return the assistant's reply
+    # Send request to OpenRouter
     client = get_openrouter_client()
-    response = client.chat.completions.create(**request_payload)
-    return response.choices[0].message.content
-
-# Generate follow-up suggestions based on previous answer
-def get_suggested_followups(query, response):
-    prompt = f"""
-    Based on the user's question and your response, suggest three follow-up prompts that the user might ask next:
-
-    User Question: {query}
-    Assistant Answer: {response}
-
-    Only return the three follow-up prompts separated by newlines.
-    """
-    client = get_openrouter_client()
-    followup = client.chat.completions.create(
+    response = client.chat.completions.create(
         model="mistralai/mistral-small-3.2-24b-instruct:free",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=100,
-        temperature=0.5
+        messages=messages,
+        max_tokens=1400,
+        temperature=0.7
     )
-    return [q.strip("- •\n ") for q in followup.choices[0].message.content.strip().split("\n") if q.strip()]
 
+    # Parse structured output
+    content = response.choices[0].message.content.strip()
+    answer = ""
+    followups = []
+
+    if "**Suggested Follow-Ups:**" in content:
+        answer_part, followup_part = content.split("**Suggested Follow-Ups:**", 1)
+        answer = answer_part.replace("**Answer:**", "").strip()
+        followups = [
+            line.strip("-• \n") for line in followup_part.strip().splitlines()
+            if line.strip()
+        ]
+    else:
+        answer = content
+        
+    return {
+        "answer": answer,
+        "followups": followups[:3]
+    }
 
 # ========== 4. Load and Index Data ==========
 @st.cache_resource
@@ -270,19 +308,26 @@ if st.session_state.trigger_llm and st.session_state.current_query:
             product_context = st.session_state.initial_products
             relevant_products = []
 
-        # Call LLM with RAG context and history
-        response = get_cloud_llm_response_with_memory(query, context, product_context, st.session_state.chat_history)
+        # 🧠 Call LLM once to get both answer and follow-ups
+        result = get_response_and_followups(
+            query=query,
+            context=context,
+            product_context=product_context,
+            chat_history=st.session_state.chat_history
+        )
+        answer = result["answer"]
+        followups = result["followups"]
 
-        # Log results to session state
+        # 📜 Log to session state
         st.session_state.chat_history.append({"role": "user", "content": query})
-        st.session_state.chat_history.append({"role": "assistant", "content": response})
+        st.session_state.chat_history.append({"role": "assistant", "content": answer})
         st.session_state.qa_history.append({
             "query": query,
             "context": context,
             "products": relevant_products,
-            "cloud_response": response
+            "cloud_response": answer
         })
-        st.session_state.followup_suggestions = get_suggested_followups(query, response)
+        st.session_state.followup_suggestions = followups
         st.session_state.trigger_llm = False
         st.session_state.current_query = None
         st.rerun()

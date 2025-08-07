@@ -3,7 +3,6 @@
 # ---------------------------------------------------------
 
 import os
-import faiss
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -95,7 +94,18 @@ llm = ChatOpenAI(
 )
 
 prompt = ChatPromptTemplate.from_messages([
-    ("system", "You are a helpful travel assistant for Explore California. Use the context and product details provided."),
+    ("system",
+     "You are a helpful travel assistant for Explore California.\n"
+     "Use the provided context and product information to answer the user's question.\n"
+     "If relevant tours are mentioned, format them in **bold**.\n"
+     "After the answer, suggest 3 concise follow-up questions.\n"
+     "Format your response like this:\n\n"
+     "**Answer:** <your detailed assistant reply>\n\n"
+     "**Suggested Follow-Ups:**\n"
+     "- Question 1\n"
+     "- Question 2\n"
+     "- Question 3"
+    ),
     ("human", "Context:\n{context}\n\nProducts:\n{products}\n\nQuestion: {query}")
 ])
 
@@ -126,11 +136,35 @@ def format_product_descriptions(names: List[str]) -> str:
         blocks.append(f"**{row['product_name']}**  \n{row.get('description', '')}  \nDuration: {row.get('duration', 'N/A')} | Price: ${int(row['price_usd']):,}  \nDifficulty: {row.get('difficulty')} | Audience: {row.get('demographics')}")
     return "\n\n".join(blocks)
 
-def get_followups(query, answer):
-    prompt = f"Suggest 3 follow-up questions based on this Q&A.\n\nQ: {query}\nA: {answer}\n\nJust list the questions."
-    result = llm.invoke([("human", prompt)]).content
-    return [q.strip("-• ") for q in result.strip().split("\n") if q.strip()]
+def run_rag_chain_with_followups(query: str, context: str, products: str) -> dict:
+    """
+    Calls the LangChain RAG chain to generate an answer and follow-up suggestions.
 
+    Returns:
+        dict with:
+            - answer: main assistant response
+            - followups: list of follow-up questions
+    """
+    # Run the RAG chain
+    response = rag_chain.invoke({"query": query, "context": context, "products": products})
+    output = response["text"].strip()
+
+    # Parse structured output
+    if "**Suggested Follow-Ups:**" in output:
+        answer_part, followup_part = output.split("**Suggested Follow-Ups:**", 1)
+        answer = answer_part.replace("**Answer:**", "").strip()
+        followups = [
+            line.strip("-• \n") for line in followup_part.strip().splitlines()
+            if line.strip()
+        ]
+    else:
+        answer = output
+        followups = []
+
+    return {
+        "answer": answer,
+        "followups": followups[:3]
+    }
 # ========== 7. App State ==========
 st.session_state.setdefault("chat_history", [])
 st.session_state.setdefault("followups", [])
@@ -146,9 +180,12 @@ with st.sidebar:
     st.subheader("Python LangChain RAG LLM Application")
     st.markdown("This is a RAG LLM app built using the **LangChain** AI framework, running on Google Colab using Ngrok and Mistral from OpenRouter.")
     st.markdown("🔗 [GitHub Repo](https://github.com/LinkedInLearning/applied-AI-and-machine-learning-for-data-practitioners-5932259)")
-    if st.button("🔄 Start Over"):
+    if st.button("🔄 Start New Chat"):
+        keep_session_keys = ["authenticated", "just_authenticated"]
+        # Loop through all keys and delete those not in the keep list
         for key in list(st.session_state.keys()):
-            del st.session_state[key]
+            if key not in keep_session_keys:
+                del st.session_state[key]
         st.rerun()
 
 for msg in st.session_state.chat_history:
@@ -179,14 +216,15 @@ if st.session_state.trigger_llm and st.session_state.current_query:
         product_names = match_products(context)
         product_block = format_product_descriptions(product_names)
 
-        result = rag_chain.invoke({"query": query, "context": context, "products": product_block})
-        response = result["text"]  # ✅ FIXED: use the correct key from LLMChain
+        result = run_rag_chain_with_followups(query, context, product_block)
+
+        response = result["answer"]
 
         st.session_state.chat_history.append({"role": "user", "content": query})
         st.session_state.chat_history.append({"role": "assistant", "content": response})
 
         st.session_state.last_llm_messages = memory.chat_memory.messages.copy()
-        st.session_state.followups = get_followups(query, response)
+        st.session_state.followups = result["followups"]
 
         st.session_state.trigger_llm = False
         st.session_state.current_query = None
