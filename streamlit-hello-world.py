@@ -121,7 +121,7 @@ def get_cloud_llm_response(prompt: str) -> str:
         Text response from the model (first choice).
     """
     response = open_router_client.chat.completions.create(
-        model="mistralai/mistral-7b-instruct:free",
+        model="mistralai/mistral-small-3.1-24b-instruct:free",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=512,
         temperature=0.7

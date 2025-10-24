@@ -146,7 +146,7 @@ def get_response_and_followups(
     # Send request to OpenRouter
     client = get_openrouter_client()
     response = client.chat.completions.create(
-        model="mistralai/mistral-7b-instruct:free",
+        model="mistralai/mistral-small-3.1-24b-instruct:free",
         messages=messages,
         max_tokens=1400,
         temperature=0.7
