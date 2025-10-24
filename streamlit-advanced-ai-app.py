@@ -92,7 +92,7 @@ def load_models_and_data():
     df_products = pd.read_csv("data/products.csv")
 
     llm = ChatOpenAI(
-        model_name="mistralai/mistral-small-3.2-24b-instruct:free",
+        model_name="mistralai/mistral-7b-instruct:free",
         openai_api_key=OPEN_ROUTER_API_KEY,
         openai_api_base="https://openrouter.ai/api/v1",
         temperature=0.7,
